@@ -16,64 +16,47 @@ class Video:
     @classmethod
     def from_html(cls, html: str, base_url: str):
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Scrape general layout anchors or specific grid configurations
-        video_elements = (
-            soup.find_all('div', class_=re.compile(r'd-item|post|item|video-block')) or 
-            soup.find_all('a', href=re.compile(r'/\d+/'))
-        )
-        
         videos = []
-        for element in video_elements:
-            if element.name == 'a':
-                a_tag = element
-            else:
-                a_tag = element.find('a', href=re.compile(r'/\d+/')) or element.find('a')
+        
+        # Extract every absolute external video reference node directly
+        all_links = soup.find_all('a', href=True)
+        
+        for link in all_links:
+            url = link.get('href', '')
+            
+            # Find external dynamic distribution stream providers embedded in the string block
+            if 'vidara.so/v/' in url or 'lulustream.com/' in url or 'luluvid.com/' in url:
+                # Isolate the platform's routing hash to use as a primary key ID
+                video_id_match = re.search(r'/v/([A-Za-z0-9]+)|/([A-Za-z0-9]+)$', url)
+                if not video_id_match:
+                    continue
+                video_id = next(g for g in video_id_match.groups() if g is not None)
                 
-            if not a_tag:
-                continue
+                # Traverse backward through sibling elements to capture the raw title metadata context
+                title = "Untitled Video"
+                parent = link.parent
+                if parent:
+                    # Capture the textual information preceding the link target
+                    text_content = parent.get_text(" ", strip=True)
+                    # Extract string components located ahead of the outbound stream URL
+                    if url in text_content:
+                        title_part = text_content.split(url)[0].strip()
+                        # Clean out residual structural elements
+                        title_part = re.sub(r'FULL HD.*$', '', title_part, flags=re.IGNORECASE)
+                        title_part = re.sub(r'WATCH FULL.*$', '', title_part, flags=re.IGNORECASE)
+                        if title_part:
+                            title = title_part[-200:] # Limit string length bounds
                 
-            url = a_tag.get('href', '')
-            video_id_match = re.search(r'/(\d+)/|/videos/(\d+)', url)
-            if not video_id_match:
-                continue
-            
-            video_id = video_id_match.group(1) or video_id_match.group(2)
+                # Assign default placeholder image maps when hidden behind lazyloading configurations
+                thumbnail = 'https://via.placeholder.com/320x180/1f1f1f/666666?text=Video+Source'
                 
-            # Process Title Text Elements
-            title = 'Untitled'
-            title_el = (
-                element.find(class_=re.compile(r'title|name|desc')) if element.name != 'a' else None
-            ) or a_tag.find('img') or element
-            
-            if title_el:
-                title = title_el.get('alt', '') or title_el.get('title', '') if title_el.name == 'img' else title_el.get_text(strip=True)
-            
-            if not title or title == 'Untitled':
-                title = a_tag.get('title', '') or 'Untitled Video'
-                
-            # Handle Lazy Loaded Image Placeholders
-            img_tag = element.find('img') if element.name != 'a' else element.find('img')
-            thumbnail = ''
-            if img_tag:
-                # Priority chain evaluating lazyload markers vs normal paths
-                thumbnail = (
-                    img_tag.get('data-src') or 
-                    img_tag.get('data-lazy') or 
-                    img_tag.get('data-original') or 
-                    img_tag.get('src', '')
-                )
-            
-            duration_el = element.find(class_=re.compile(r'duration|time|length')) if element.name != 'a' else None
-            duration = duration_el.get_text(strip=True) if duration_el else None
-            
-            if video_id not in [v.id for v in videos]:
-                videos.append(cls(
-                    id=video_id,
-                    title=title,
-                    thumbnail=thumbnail,
-                    url=url if url.startswith('http') else f"{base_url.rstrip('/')}{url}",
-                    duration=duration
-                ))
-            
+                if video_id not in [v.id for v in videos]:
+                    videos.append(cls(
+                        id=video_id,
+                        title=title,
+                        thumbnail=thumbnail,
+                        url=url,
+                        duration="HD"
+                    ))
+                    
         return videos
