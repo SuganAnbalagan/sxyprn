@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+from bs4 import BeautifulSoup
 import re
 
 @dataclass
@@ -15,31 +16,49 @@ class Video:
     @classmethod
     def from_html(cls, html: str, base_url: str):
         soup = BeautifulSoup(html, 'html.parser')
-        video_elements = soup.find_all('div', class_='video-container') or soup.find_all('div', class_='item')
+        
+        # Target the post elements used by the site structure
+        video_elements = soup.find_all('div', class_=re.compile(r'post|item|video'))
         
         videos = []
         for element in video_elements:
-            # Extract video ID from URL pattern
-            a_tag = element.find('a')
+            a_tag = element.find('a', href=re.compile(r'/\d+/')) or element.find('a')
             if not a_tag:
                 continue
                 
             url = a_tag.get('href', '')
-            video_id = re.search(r'/videos/(\d+)', url)
-            if not video_id:
+            # Match either /videos/id or the site's /id/title format
+            video_id_match = re.search(r'/(\d+)/|/videos/(\d+)', url)
+            if not video_id_match:
                 continue
+            
+            # Extract whichever group matched the numerical ID
+            video_id = video_id_match.group(1) or video_id_match.group(2)
                 
-            title = element.find('span', class_='video-title').get_text(strip=True) if element.find('span', class_='video-title') else 'Untitled'
-            thumbnail = a_tag.find('img').get('src', '') if a_tag.find('img') else ''
+            # Fallback chain for titles
+            title_el = element.find('span', class_='title') or element.find('div', class_='title') or element.find('img')
+            title = 'Untitled'
+            if title_el:
+                title = title_el.get('alt', '') if title_el.name == 'img' else title_el.get_text(strip=True)
+                
+            # Thumbnail extraction
+            img_tag = element.find('img')
+            thumbnail = ''
+            if img_tag:
+                thumbnail = img_tag.get('data-src') or img_tag.get('src', '')
             
-            duration = element.find('span', class_='duration').get_text(strip=True) if element.find('span', class_='duration') else None
+            # Duration extraction 
+            duration_el = element.find('span', class_='duration') or element.find('div', class_='time')
+            duration = duration_el.get_text(strip=True) if duration_el else None
             
-            videos.append(cls(
-                id=video_id.group(1),
-                title=title,
-                thumbnail=thumbnail,
-                url=f"{base_url}{url}",
-                duration=duration
-            ))
+            # Avoid duplicating video entries
+            if video_id not in [v.id for v in videos]:
+                videos.append(cls(
+                    id=video_id,
+                    title=title,
+                    thumbnail=thumbnail,
+                    url=url if url.startswith('http') else f"{base_url.rstrip('/')}{url}",
+                    duration=duration
+                ))
             
         return videos
