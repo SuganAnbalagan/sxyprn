@@ -45,9 +45,9 @@ def get_video(video_id):
             }), 404
     except Exception as e:
         return jsonify({
-            "status": " error",
+            "status": "error",
             "message": str(e)
         }), 500
 
-if __name__ == 'app.py' == '__main__':
-    app.run(host='0.00.0.0', port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
