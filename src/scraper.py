@@ -12,18 +12,26 @@ class Scraper:
             browser = p.chromium.launch(headless=True)
             context = browser.new_context(
                 user_agent=Config.HEADERS["User-Agent"],
-                viewport={"width": 375, "height": 812},
-                is_mobile=True,
+                viewport={"width": 1280, "height": 1000}, # Use desktop viewport size to force more content blocks into view
+                is_mobile=False,
                 extra_http_headers={"Accept-Encoding": "gzip, deflate"}
             )
             page = context.new_page()
             
-            # Block heavy tracking assets and analytics to speed up structural rendering
-            page.route("**/*.{png,jpg,jpeg,gif,webp,svg,mp4,woff,woff2,ttf}", lambda route: route.abort())
+            # Allow basic layout assets but block external tracker domains
+            page.route("**/*.{mp4,ogv,webm,woff,woff2}", lambda route: route.abort())
             
             try:
-                page.goto(url, timeout=15000, wait_until="commit")
-                page.wait_for_selector('div', timeout=5000)
+                page.goto(url, timeout=20000, wait_until="domcontentloaded")
+                
+                # Force dynamic lazyload execution by scrolling down the screen layout structure
+                for _ in range(3):
+                    page.evaluate("window.scrollBy(0, 800)")
+                    page.wait_for_timeout(500)
+                
+                # Explicit fallback wait condition to guarantee script evaluations complete
+                page.wait_for_timeout(2000)
+                
                 html = page.content()
                 browser.close()
                 return html

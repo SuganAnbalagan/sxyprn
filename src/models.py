@@ -17,6 +17,7 @@ class Video:
     def from_html(cls, html: str, base_url: str):
         soup = BeautifulSoup(html, 'html.parser')
         
+        # Scrape general layout anchors or specific grid configurations
         video_elements = (
             soup.find_all('div', class_=re.compile(r'd-item|post|item|video-block')) or 
             soup.find_all('a', href=re.compile(r'/\d+/'))
@@ -39,6 +40,7 @@ class Video:
             
             video_id = video_id_match.group(1) or video_id_match.group(2)
                 
+            # Process Title Text Elements
             title = 'Untitled'
             title_el = (
                 element.find(class_=re.compile(r'title|name|desc')) if element.name != 'a' else None
@@ -50,10 +52,17 @@ class Video:
             if not title or title == 'Untitled':
                 title = a_tag.get('title', '') or 'Untitled Video'
                 
+            # Handle Lazy Loaded Image Placeholders
             img_tag = element.find('img') if element.name != 'a' else element.find('img')
             thumbnail = ''
             if img_tag:
-                thumbnail = img_tag.get('data-src') or img_tag.get('data-original') or img_tag.get('src', '')
+                # Priority chain evaluating lazyload markers vs normal paths
+                thumbnail = (
+                    img_tag.get('data-src') or 
+                    img_tag.get('data-lazy') or 
+                    img_tag.get('data-original') or 
+                    img_tag.get('src', '')
+                )
             
             duration_el = element.find(class_=re.compile(r'duration|time|length')) if element.name != 'a' else None
             duration = duration_el.get_text(strip=True) if duration_el else None
