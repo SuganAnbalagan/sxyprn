@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sxyprn-scraper-api
+    env: python
+    plan: free
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python src/main.py"
+    envVars:
+      - key: PORT
+        value: 5000
