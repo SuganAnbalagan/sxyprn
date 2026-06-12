@@ -10,5 +10,5 @@ class Config:
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1"
     }
-    SCRAPE_INTERVAL = 3600  # 1 hour
+    SCRAPE_INTERVAL = 3600
     MAX_RETRIES = 3

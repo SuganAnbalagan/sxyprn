@@ -4,7 +4,7 @@ from models import Video
 from scraper import Scraper
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 CORS(app)
 
 @app.route('/')
@@ -48,6 +48,15 @@ def get_video(video_id):
             "status": "error",
             "message": str(e)
         }), 500
+
+@app.route('/api/debug-html', methods=['GET'])
+def debug_html():
+    scraper = Scraper()
+    try:
+        html = scraper.get_page_html("https://sxyprn.com")
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return str(e), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

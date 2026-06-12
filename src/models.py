@@ -17,7 +17,6 @@ class Video:
     def from_html(cls, html: str, base_url: str):
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Comprehensive element search pattern matching across various rendering templates
         video_elements = (
             soup.find_all('div', class_=re.compile(r'd-item|post|item|video-block')) or 
             soup.find_all('a', href=re.compile(r'/\d+/'))
@@ -25,7 +24,6 @@ class Video:
         
         videos = []
         for element in video_elements:
-            # Handle if the element container itself is the anchor tag or contains it
             if element.name == 'a':
                 a_tag = element
             else:
@@ -41,7 +39,6 @@ class Video:
             
             video_id = video_id_match.group(1) or video_id_match.group(2)
                 
-            # Text parsing fallback loop
             title = 'Untitled'
             title_el = (
                 element.find(class_=re.compile(r'title|name|desc')) if element.name != 'a' else None
@@ -53,13 +50,11 @@ class Video:
             if not title or title == 'Untitled':
                 title = a_tag.get('title', '') or 'Untitled Video'
                 
-            # Image extraction fallback loop
             img_tag = element.find('img') if element.name != 'a' else element.find('img')
             thumbnail = ''
             if img_tag:
                 thumbnail = img_tag.get('data-src') or img_tag.get('data-original') or img_tag.get('src', '')
             
-            # Duration parsing fallback loop
             duration_el = element.find(class_=re.compile(r'duration|time|length')) if element.name != 'a' else None
             duration = duration_el.get_text(strip=True) if duration_el else None
             

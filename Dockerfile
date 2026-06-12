@@ -5,7 +5,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ensure the container runtime user has full read/write access to the application directory
 RUN chmod -R 777 /app
 
 COPY src/ ./src/

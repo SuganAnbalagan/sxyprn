@@ -95,15 +95,14 @@
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    container.innerHTML = ''; // Clear loading text
+                    container.innerHTML = '';
                     
                     if (data.videos.length === 0) {
-                        container.innerHTML = '<p>No videos found.</p>';
+                        container.innerHTML = '<p>No videos found. Check <a href="/api/debug-html" target="_blank">Debug View</a> to see if you are blocked.</p>';
                         return;
                     }
 
                     data.videos.forEach(video => {
-                        // Dynamically adjust these property names depending on your models.Video fields
                         const title = video.title || 'Untitled Video';
                         const thumbnail = video.thumbnail || 'https://via.placeholder.com/250x150';
                         const duration = video.duration || 'N/A';
@@ -125,7 +124,6 @@
             }
         }
 
-        // Optional: Automatically load videos when page opens
         window.onload = loadVideos;
     </script>
 </body>
