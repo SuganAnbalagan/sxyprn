@@ -6,125 +6,211 @@
     <title>Sxyprn Video Scraper</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f9f9f9;
+            background-color: #141414;
+            color: #ffffff;
         }
         .header-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #282828;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #ff0055;
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #007bff;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            background-color: #ff0055;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #cc0044;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .status-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 16px;
+            color: #aaaaaa;
+            padding: 40px;
         }
         .video-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
         }
         .video-card {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            background: #1f1f1f;
+            border-radius: 6px;
             overflow: hidden;
-            transition: transform 0.2s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
         }
         .video-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
+            box-shadow: 0 6px 18px rgba(255, 0, 85, 0.2);
+        }
+        .thumbnail-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #111;
         }
         .video-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 150px;
+            height: 100%;
             object-fit: cover;
-            background-color: #ccc;
+        }
+        .video-duration {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 2px;
+        }
+        .video-metadata {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
         }
         .video-title {
-            padding: 10px 10px 5px 10px;
             font-size: 14px;
-            font-weight: bold;
-            margin: 0;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            line-height: 1.4;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
+            color: #eee;
         }
-        .video-info {
-            padding: 0 10px 10px 10px;
-            font-size: 12px;
+        .video-id {
+            font-size: 11px;
             color: #666;
+            margin-top: auto;
         }
         .error-message {
-            color: red;
-            font-weight: bold;
-            grid-column: 1 / -1;
+            color: #ff3333;
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid rgba(255, 51, 51, 0.3);
+            padding: 15px;
+            border-radius: 4px;
+            text-align: left;
+        }
+        .debug-link {
+            color: #ff0055;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="header-container">
         <h1>Sxyprn Video Scraper</h1>
-        <button onclick="loadVideos()">Load Videos</button>
+        <button id="load-btn" onclick="loadVideos()">Load Videos</button>
     </div>
     
-    <div id="video-container" class="video-grid"></div>
+    <div id="video-container" class="video-grid">
+        <div class="status-message">Click "Load Videos" to scrape content.</div>
+    </div>
     
     <script>
         async function loadVideos() {
             const container = document.getElementById('video-container');
-            container.innerHTML = 'Loading videos...';
+            const button = document.getElementById('load-btn');
+            
+            container.innerHTML = '<div class="status-message">Launching headless browser and parsing structure... Please wait.</div>';
+            button.disabled = true;
+            button.innerText = 'Scraping...';
             
             try {
                 const response = await fetch('/api/videos');
+                if (!response.ok) {
+                    throw new Error(`Server returned status code ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.status === 'success') {
                     container.innerHTML = '';
                     
-                    if (data.videos.length === 0) {
-                        container.innerHTML = '<p>No videos found. Check <a href="/api/debug-html" target="_blank">Debug View</a> to see if you are blocked.</p>';
+                    if (!data.videos || data.videos.length === 0) {
+                        container.innerHTML = `
+                            <div class="status-message">
+                                <p>No structural nodes matched. The scraper connected successfully but found 0 videos.</p>
+                                <p>Please inspect the <a class="debug-link" href="/api/debug-html" target="_blank">Live HTML Debug View</a> to verify page payload contents.</p>
+                            </div>`;
                         return;
                     }
 
                     data.videos.forEach(video => {
                         const title = video.title || 'Untitled Video';
-                        const thumbnail = video.thumbnail || 'https://via.placeholder.com/250x150';
+                        const thumbnail = video.thumbnail || 'https://via.placeholder.com/320x180/1f1f1f/666666?text=No+Image';
                         const duration = video.duration || 'N/A';
+                        const videoUrl = video.url || '#';
 
-                        const card = document.createElement('div');
+                        const card = document.createElement('a');
                         card.className = 'video-card';
+                        card.href = videoUrl;
+                        card.target = '_blank';
+                        
                         card.innerHTML = `
-                            <img class="video-thumbnail" src="${thumbnail}" alt="${title}" onerror="this.src='https://via.placeholder.com/250x150';">
-                            <h3 class="video-title">${title}</h3>
-                            <div class="video-info">Duration: ${duration}</div>
+                            <div class="thumbnail-container">
+                                <img class="video-thumbnail" src="${thumbnail}" alt="${title}" onerror="this.onerror=null; this.src='https://via.placeholder.com/320x180/1f1f1f/666666?text=Image+Error';">
+                                <span class="video-duration">${duration}</span>
+                            </div>
+                            <div class="video-metadata">
+                                <h3 class="video-title" title="${title}">${title}</h3>
+                                <span class="video-id">ID: ${video.id}</span>
+                            </div>
                         `;
                         container.appendChild(card);
                     });
                 } else {
-                    container.innerHTML = `<p class="error-message">Error: ${data.message}</p>`;
+                    container.innerHTML = `
+                        <div class="status-message error-message">
+                            <strong>Scraper Error:</strong> ${data.message || 'Unknown response code context.'}
+                        </div>`;
                 }
             } catch (error) {
-                container.innerHTML = `<p class="error-message">Failed to fetch data: ${error.message}</p>`;
+                container.innerHTML = `
+                    <div class="status-message error-message">
+                        <strong>Network Fetch Error:</strong> ${error.message}<br><br>
+                        <em>Ensure the backend server is running and accessible at this address network tier.</em>
+                    </div>`;
+            } finally {
+                button.disabled = false;
+                button.innerText = 'Load Videos';
             }
         }
-
-        window.onload = loadVideos;
     </script>
 </body>
 </html>
