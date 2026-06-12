@@ -17,8 +17,8 @@ class Video:
     def from_html(cls, html: str, base_url: str):
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Target the post elements used by the site structure
-        video_elements = soup.find_all('div', class_=re.compile(r'post|item|video'))
+        # Target the explicit video container blocks matching the site's layout
+        video_elements = soup.find_all('div', class_=re.compile(r'd-item|post|item'))
         
         videos = []
         for element in video_elements:
@@ -27,31 +27,29 @@ class Video:
                 continue
                 
             url = a_tag.get('href', '')
-            # Match either /videos/id or the site's /id/title format
+            # Match the numeric ID inside the path structure
             video_id_match = re.search(r'/(\d+)/|/videos/(\d+)', url)
             if not video_id_match:
                 continue
             
-            # Extract whichever group matched the numerical ID
             video_id = video_id_match.group(1) or video_id_match.group(2)
                 
-            # Fallback chain for titles
+            # Extract video title attribute or string content
             title_el = element.find('span', class_='title') or element.find('div', class_='title') or element.find('img')
             title = 'Untitled'
             if title_el:
                 title = title_el.get('alt', '') if title_el.name == 'img' else title_el.get_text(strip=True)
                 
-            # Thumbnail extraction
+            # Extract video thumbnail reference
             img_tag = element.find('img')
             thumbnail = ''
             if img_tag:
                 thumbnail = img_tag.get('data-src') or img_tag.get('src', '')
             
-            # Duration extraction 
+            # Extract runtime indicators
             duration_el = element.find('span', class_='duration') or element.find('div', class_='time')
             duration = duration_el.get_text(strip=True) if duration_el else None
             
-            # Avoid duplicating video entries
             if video_id not in [v.id for v in videos]:
                 videos.append(cls(
                     id=video_id,
