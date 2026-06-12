@@ -17,7 +17,6 @@ RUN apt-get update && apt-get install -y wget gnupg && \
 RUN chmod -R 777 /app
 
 COPY src/ ./src/
-COPY templates/ ./templates/
 
 EXPOSE 5000
 
