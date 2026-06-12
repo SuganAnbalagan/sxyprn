@@ -8,10 +8,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install system dependencies and browser binaries into the custom path
-RUN apt-get update && apt-get install -y wget gnupg && \
-    playwright install --with-deps chromium && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Pre-install the modern font dependencies, then install chromium browser only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+    fonts-unifont \
+    && playwright install chromium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ensure the container runtime user has full read/write access to the application directory
 RUN chmod -R 777 /app
