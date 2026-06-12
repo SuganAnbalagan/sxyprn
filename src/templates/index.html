@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sxyprn Video Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .video-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background-color: #ccc;
+        }
+        .video-title {
+            padding: 10px 10px 5px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .video-info {
+            padding: 0 10px 10px 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <h1>Sxyprn Video Scraper</h1>
+        <button onclick="loadVideos()">Load Videos</button>
+    </div>
+    
+    <div id="video-container" class="video-grid"></div>
+    
+    <script>
+        async function loadVideos() {
+            const container = document.getElementById('video-container');
+            container.innerHTML = 'Loading videos...';
+            
+            try {
+                const response = await fetch('/api/videos');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    container.innerHTML = ''; // Clear loading text
+                    
+                    if (data.videos.length === 0) {
+                        container.innerHTML = '<p>No videos found.</p>';
+                        return;
+                    }
+
+                    data.videos.forEach(video => {
+                        // Dynamically adjust these property names depending on your models.Video fields
+                        const title = video.title || 'Untitled Video';
+                        const thumbnail = video.thumbnail || 'https://via.placeholder.com/250x150';
+                        const duration = video.duration || 'N/A';
+
+                        const card = document.createElement('div');
+                        card.className = 'video-card';
+                        card.innerHTML = `
+                            <img class="video-thumbnail" src="${thumbnail}" alt="${title}" onerror="this.src='https://via.placeholder.com/250x150';">
+                            <h3 class="video-title">${title}</h3>
+                            <div class="video-info">Duration: ${duration}</div>
+                        `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = `<p class="error-message">Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<p class="error-message">Failed to fetch data: ${error.message}</p>`;
+            }
+        }
+
+        // Optional: Automatically load videos when page opens
+        window.onload = loadVideos;
+    </script>
+</body>
+</html>
